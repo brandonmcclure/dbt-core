@@ -9,7 +9,7 @@ ARG build_for=linux/amd64
 ##
 # base image (abstract)
 ##
-FROM --platform=$build_for python:3.9.9-slim-bullseye as base
+FROM --platform=$build_for python:3.9.9-bullseye as base
 
 # N.B. The refs updated automagically every release via bumpversion
 # N.B. dbt-postgres is currently found in the core codebase so a value of dbt-core@<some_version> is correct
@@ -24,10 +24,13 @@ ARG dbt_spark_ref=dbt-spark@v1.0.0
 ARG dbt_spark_version=all
 ARG dbt_third_party
 
+RUN curl -sS https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl -sS https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/msprod.list
+
 # System setup
 RUN apt-get update \
   && apt-get dist-upgrade -y \
-  && apt-get install -y --no-install-recommends \
+  && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
     git \
     ssh-client \
     software-properties-common \
@@ -35,6 +38,8 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     libpq-dev \
+    unixodbc-dev \ 
+    msodbcsql17 \
   && apt-get clean \
   && rm -rf \
     /var/lib/apt/lists/* \
@@ -46,7 +51,7 @@ ENV PYTHONIOENCODING=utf-8
 ENV LANG=C.UTF-8
 
 # Update python
-RUN python -m pip install --upgrade pip setuptools wheel --no-cache-dir
+RUN python -m pip install --upgrade pip setuptools wheel dbt-sqlserver --no-cache-dir
 
 # Set docker basics
 WORKDIR /usr/app/dbt/
